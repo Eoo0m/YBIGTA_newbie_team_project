@@ -19,7 +19,11 @@ class CrawledReview:
     date: str
     review: str
 
-SCROLLER_SELECTOR = '#main_pack div._content[data-tab="audience"] > div.lego_review_list._scroller'
+
+UNOFFICIAL_FETCH_SCRIPT = """
+var callback = arguments[arguments.length - 1];
+fetch('https://m.search.naver.com/p/csearch/content/nqapirender.nhn?where=nexearch&pkid=68&fileKey=movieKBPointAPI&u1='+arguments[0]+'&u5=true&u3=sympathyScore&u4=false&u2='+arguments[1]).then(res => res.json()).then(data => callback(data));
+"""
 
 
 class NaverCrawler(BaseCrawler):
@@ -35,9 +39,9 @@ class NaverCrawler(BaseCrawler):
         logger.info("브라우저 시작 완료")
 
     def scrape_reviews(self):
-        return self._scrape_reviews("기생충", 300)
+        return self._scrape_reviews("기생충", "161967", 1000)
 
-    def _scrape_reviews(self, movie_name: str, limit: int = 100):
+    def _scrape_reviews(self, movie_name: str, movie_id: str, limit: int = 100):
         self.start_browser()
         url = f"https://search.naver.com/search.naver?query=영화 {movie_name} 관람평"
         if not self.driver:
@@ -48,40 +52,37 @@ class NaverCrawler(BaseCrawler):
         driver.implicitly_wait(10)
         logger.info("리뷰 수집 시작")
 
-        scroller = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, SCROLLER_SELECTOR))
-        )
-
-        def get_scroller_height() -> int:
-            return driver.execute_script("return arguments[0].scrollHeight", scroller)
-        
-        def scroll_to_bottom():
-            driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scroller)
-        
         def get_review_count() -> int:
-            return int(driver.execute_script("return document.querySelectorAll(arguments[0] + ' > ul > li').length", SCROLLER_SELECTOR))
+            return driver.execute_script("return document.querySelectorAll('#review_container > li').length;")
 
-        
-        try:
-            scroll_height = get_scroller_height()
-            while get_review_count() < limit:
-                logger.info(f"현재 스크롤 높이: {scroll_height}, 리뷰 수: {get_review_count()}")
-                scroll_to_bottom()
-                WebDriverWait(driver, 2).until(
-                    lambda _: get_scroller_height() > scroll_height
-                )
-                scroll_height = get_scroller_height()
-        except TimeoutException as e:
-            logger.warning(f"스크롤 중 타임아웃 발생, 리뷰 없음 의심: {e}")
-        
+        def fetch_unofficial_reviews(page: int):
+            return driver.execute_async_script(UNOFFICIAL_FETCH_SCRIPT, movie_id, str(page))
+
+        # Body에 element를 모아둘 div 생성
+        driver.execute_script("""
+            var div = document.createElement('div');
+            div.id = 'review_container';
+            document.body.appendChild(div);
+        """)
+
+        count = 0
+        while get_review_count() < limit:
+            count += 1
+            reviews = fetch_unofficial_reviews(count)
+            html = reviews.get('html', '')
+            if not html:
+                logger.warning("리뷰 HTML이 비어있습니다. 더 이상 리뷰가 없을 수 있습니다.")
+                break
+            driver.execute_script(f"document.getElementById('review_container').innerHTML += `{html}`;")
+            logger.info(f"요청수: {count}, 수집된 리뷰 수: {get_review_count()}")
 
         def extract_review(element: WebElement) -> CrawledReview:
             rating = int(element.find_element(By.CSS_SELECTOR, "div.lego_movie_pure_star").text.strip().replace("별점(10점 만점 중)", ""))
             date = element.find_elements(By.CSS_SELECTOR, "dl.cm_upload_info > dd")[1].text.strip()
             review = element.find_element(By.CSS_SELECTOR, "div.area_review_content span._text").text
             return CrawledReview(rating=rating, date=date, review=review)
-        
-        review_elements = driver.find_elements(By.CSS_SELECTOR, SCROLLER_SELECTOR + " > ul > li")
+
+        review_elements = driver.find_elements(By.CSS_SELECTOR, "div#review_container > li")
 
         for element in review_elements:
             review = extract_review(element)
