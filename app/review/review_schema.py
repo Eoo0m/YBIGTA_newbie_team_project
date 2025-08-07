@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from enum import Enum
 
 class SiteName(str, Enum):
@@ -20,3 +20,7 @@ class PreprocessedReview(BaseModel):
     review_length: int
     review_z: float
     keywords: str
+
+class PreprocessReviewResponse(BaseModel):
+    id: str
+    site_name: SiteName

@@ -61,6 +61,7 @@ jobs:
             -e MYSQL_HOST=${{ secrets.MYSQL_HOST }} \
             -e MYSQL_PORT=${{ secrets.MYSQL_PORT }} \
             -e MYSQL_NAME=${{ secrets.MYSQL_NAME }} \
+            -e MONGO_URL=${{ secrets.MONGO_URL }} \
             ${{ secrets.DOCKER_USERNAME }}/ybigta-app:latest
           
           # 컨테이너 상태 확인

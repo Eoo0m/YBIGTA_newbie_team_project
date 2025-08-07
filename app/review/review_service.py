@@ -33,7 +33,12 @@ class ReviewService:
                     os.remove(file_path)
             os.rmdir(TMP_PREPROCESSED_DIR)
 
-    def get_preprocessed_reviews(self, site_name: SiteName) -> list[PreprocessedReview]:
+    def preprocess_reviews(self, site_name: SiteName) -> str:
+        '''
+        주어진 사이트 이름에 해당하는 리뷰들을 전처리하고, 전처리된 리뷰들을 데이터베이스에 저장합니다.
+        :param site_name: SiteName 열거형
+        :return: 전처리된 리뷰들의 ID
+        '''
         reviews = self.repo.get_reviews_by_site_name(site_name)
         parser = self.preprocessors[site_name]
 
@@ -47,7 +52,18 @@ class ReviewService:
         parser.feature_engineering()
         parser.save_to_database()
         preprocessed_reviews = ReviewService.get_preprocessed_reviews_from_csv(site_name)
-        self.repo.save_reviews(site_name, preprocessed_reviews)
+        preprocessed_id = self.repo.save_preprocessed_reviews(site_name, preprocessed_reviews)
+        if not preprocessed_reviews:
+            raise ValueError("Preprocessed reviews not found.")
+        return preprocessed_id
+    
+    def get_preprocessed_reviews_by_id(self, id: str) -> Optional[list[PreprocessedReview]]:
+        '''
+        주어진 ID에 해당하는 전처리된 리뷰들을 데이터베이스에서 조회합니다.
+        :param id: 전처리된 리뷰의 ID
+        :return: 전처리된 리뷰들의 리스트
+        '''
+        preprocessed_reviews = self.repo.get_preprocessed_reviews_by_id(id)
         if not preprocessed_reviews:
             raise ValueError("Preprocessed reviews not found.")
         return preprocessed_reviews
