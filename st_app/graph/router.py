@@ -16,7 +16,7 @@ def route_decision(state):
 def build_graph() -> StateGraph:
     """
     LangGraph 기반 멀티 노드 라우팅 시스템
-    
+
     구조도:
     ┌─────────────────┐
     │   사용자 입력    │
@@ -29,7 +29,7 @@ def build_graph() -> StateGraph:
     │ _decide_route() │
     │   ├─ "chat"     │ → 내부 채팅 처리 → END
     │   ├─ "subject"  │ → subject_info_node
-    │   └─ "rag"      │ → rag_review_node  
+    │   └─ "rag"      │ → rag_review_node
     └─────────┬───────┘
               │
         ┌─────┴─────┐
@@ -45,7 +45,7 @@ def build_graph() -> StateGraph:
           ┌───▼───┐
           │  END  │
           └───────┘
-    
+
     특징:
     - chat_node: 라우팅 결정 + 일반 채팅 처리
     - 모든 경로가 END로 수렴
@@ -70,8 +70,8 @@ def build_graph() -> StateGraph:
         },
     )
 
-    graph.add_edge("subject_info", END)
-    graph.add_edge("rag_review", END)
+    graph.add_edge("subject_info", "chat")
+    graph.add_edge("rag_review", "chat")
 
     return graph
 

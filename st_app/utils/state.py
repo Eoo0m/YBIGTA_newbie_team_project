@@ -13,6 +13,7 @@ class ConversationState(TypedDict, total=False):
     output: str
     next_node: str  # 라우터에서 결정된 다음 노드
     history: List[Message]  # 대화 히스토리
+    prepared_prompt: str  # 다른 노드에서 준비한 프롬프트
 
 
 def add_to_history(state: Dict, user_input: str, assistant_output: str) -> Dict:

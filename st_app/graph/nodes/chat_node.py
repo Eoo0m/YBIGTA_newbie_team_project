@@ -4,7 +4,7 @@ from typing import Dict
 
 from ...rag.llm import get_llm
 from ...rag.prompt import build_chat_prompt
-from ...utils.state import get_history_messages, update_state
+from ...utils.state import update_state
 
 
 SYSTEM_DECIDER = (
@@ -50,17 +50,36 @@ def chat_node(state: Dict) -> Dict:
     user_input = state["input"]
     print(f"사용자 입력: '{user_input}'")
 
-    # 라우팅 결정
+    # 다른 노드에서 돌아온 경우 (prepared_prompt 있음)
+    if state.get("prepared_prompt"):
+        print("=== 다른 노드에서 돌아와서 최종 응답 생성 ===")
+        prepared_prompt = state["prepared_prompt"]
+        print("=== 준비된 프롬프트 사용 ===")
+        print(prepared_prompt)
+        print("=== 프롬프트 끝 ===")
+        
+        llm = get_llm()
+        resp = llm.invoke([{"role": "user", "content": prepared_prompt}])
+        output = resp.content
+        print(f"LLM 응답: {output}")
+        print("=== CHAT DEBUG END ===\n")
+        
+        # prepared_prompt 정리
+        state["prepared_prompt"] = None
+        return update_state(state, output, "END")
 
+    # 라우팅 결정
     route = _decide_route(user_input)
 
     # 다른 노드로 라우팅
     if route == "subject_info":
+        print("Subject Info Node로 라우팅")
         state["next_node"] = "subject_info"
-        return {"next_node": "subject_info"}
+        return state
     elif route == "rag_review":
+        print("RAG Review Node로 라우팅")
         state["next_node"] = "rag_review"
-        return {"next_node": "rag_review"}
+        return state
 
     # 일반 채팅 처리
     print("일반 채팅으로 처리")

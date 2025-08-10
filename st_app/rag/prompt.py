@@ -19,12 +19,20 @@ def build_rag_prompt(query: str, contexts: list[str], state: Dict = None) -> str
                 history_items.append(f"{role}: {msg['content']}")
             history_text = f"\n[대화 히스토리]\n" + "\n".join(history_items) + "\n"
 
-    return (
-        f"[지시] 다음 사용자 질문에 대해 컨텍스트만 근거로 답하세요. 대화 히스토리를 참고하여 맥락을 이해하고 필요 시 참고 문장을 인용하세요.\n"
-        f"{history_text}"
-        f"[질문] {query}\n"
-        f"[컨텍스트]{joined}\n"
-    )
+    return f"""
+당신은 영화 리뷰 요약/참조를 도와주는 조수입니다. 주어진 컨텍스트만을 근거로 답변해주세요.
+{history_text}
+사용자 질문: {query}
+
+[컨텍스트]{joined}
+
+답변 가이드라인:
+1. 컨텍스트만을 근거로 답변
+2. 대화 히스토리를 참고하여 맥락을 이해
+3. 필요 시 참고 문장을 인용
+4. 간결하고 정확한 정보 제공
+5. 한국어로 답변
+"""
 
 
 def build_subject_info_context(item: Dict) -> str:
