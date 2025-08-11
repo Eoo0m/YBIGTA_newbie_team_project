@@ -43,6 +43,8 @@ SICP 라는 책에서는 프로그래머를 마법사로 비유합니다. 컴퓨
 ---
 
 ## 📦 RAG Agent 데모 (Streamlit + LangGraph)
+https://ingbunga-ybigta-newbie-team-project-streamlit-app-qvqgnc.streamlit.app/
+
 
 로컬 실행 전 의존성 설치:
 
