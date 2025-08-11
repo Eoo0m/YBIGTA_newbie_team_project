@@ -1,17 +1,38 @@
 section,key,value
-overview,goal,"Chat Node · Subject Info Node · RAG Review Node를 LangGraph로 연결하고 LLM이 유동적으로 라우팅"
-overview,entry_point,chat
-chat_node,input,"user text"
-chat_node,output,"LLM 일반 대화 응답"
-subject_info_node,input,"대상(제품/작품 등) 정보 문의"
-subject_info_node,db,"st_app/db/subject_information/subjects.json"
-subject_info_node,output,"요약/스펙 문자열"
-rag_review_node,input,"리뷰 관련 문의(요약/참조/추출)"
-rag_review_node,retriever,"st_app/rag/retriever.py (FAISS)"
-rag_review_node,prompt,"st_app/rag/prompt.py"
-rag_review_node,output,"컨텍스트 기반 답변"
-router,decision,"LLM 분류 결과: chat|subject_info|rag_review"
-router,policy,"규칙 기반 금지, 실패 시 키워드 폴백 허용"
-security,keys,"Streamlit Cloud secrets 또는 ENV에 저장(README 안내)"
-deliverable,cloud,"Streamlit Cloud 링크와 동작 스크린샷 README 첨부"
 
+# 메타
+meta,프로젝트 목표,"RAG · Agent 데모 구축 및 실시간 질의응답"
+meta,담당자,"강성우, 엄준서, 한원석"
+meta,산출물 목록, https://github.com/Eoo0m/YBIGTA_newbie_team_project
+dataset,내용, "영화 기생충에 대한 리뷰 데이터터"
+dataset,특징,"naver 영화 리뷰 데이터, 전처리된 한국어 데이터터"
+
+
+# 전체 파이프라인(상단 폼의 리스트 형식과 유사하게 요약)
+overall_pipeline,Data Loader,"주제 JSON · 리뷰 CSV 로드"
+overall_pipeline,Text Clean,"추가적인 전처리는 진행하지 않음음
+overall_pipeline,Embedding,"Sentence-Transformers 임베딩"
+overall_pipeline,Vector DB 구축,"FAISS 인덱스(index.faiss + meta.json)"
+overall_pipeline,Summarize,"LLM 응답 요약(chat)"
+overall_pipeline,Retrieval,"쿼리 임베딩 후 FAISS 상위 k 검색"
+overall_pipeline,Classification,"LLM/상태 기반 라우팅(chat | subject_info | rag_review)"
+overall_pipeline,Dash,"Streamlit UI"
+
+# 시스템 구축 파이프라인,모듈,설명,입력,출력,비고
+sys_pipeline,#,모듈,설명,입력,출력,비고
+sys_pipeline,1,Subjects Loader,주제 카탈로그 로드(JSON),JSON,Python dict,st_app/db/subject_information/subjects.json
+sys_pipeline,2,Reviews Loader,리뷰 CSV 로드(인덱스 생성용),CSV,텍스트 목록,database/reviews_naver.csv
+sys_pipeline,3,Embedding Loader,임베딩 모델 로드, -,encoder,st_app/rag/embedder.py
+sys_pipeline,4,Vector Index Build(FAISS),최초 1회 인덱스 생성,텍스트→벡터,index.faiss+meta.json,st_app/rag/retriever.py
+sys_pipeline,5,Graph Compile,LangGraph 컴파일, -,compiled graph,st_app/graph/graph_builder.py
+sys_pipeline,6,UI Init,Streamlit 화면 구성, -,UI,streamlit_app.py
+
+# 사용자 실시간 흐름,모듈,설명,입력,출력,비고
+flow,#,모듈,설명,입력,출력,비고
+flow,1,Chat 입력,사용자 메시지 수신,텍스트,state(input,history),streamlit_app.py
+flow,2,라우팅 결정,should_continue(state.next_node),next_node,chat|subject_info|rag_review,st_app/graph/graph_builder.py
+flow,3,Subject Info,목록 기반 프롬프트 → LLM,질문+목록,LLM 응답,st_app/graph/nodes/subject_info_node.py; st_app/rag/prompt.py
+flow,4,RAG 검색,FAISS에서 상위 k 문서,질문,컨텍스트 목록,st_app/rag/retriever.py
+flow,5,RAG 응답,컨텍스트 프롬프트 → LLM,질문+컨텍스트,LLM 응답,st_app/graph/nodes/rag_review_node.py; st_app/rag/prompt.py
+flow,6,Chat 응답,일반 대화 → LLM,질문,LLM 응답,st_app/graph/nodes/chat_node.py
+flow,7,대화 기록,응답/프롬프트를 이력에 반영, -,history 업데이트,streamlit_app.py
